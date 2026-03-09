@@ -19,7 +19,6 @@ const db = getFirestore(app);
 let currentUser = null;
 let currentGameId = null;
 let gamesData = [];
-let currentFilter = 'new';
 
 function isAdmin(username) {
     return username && username.toLowerCase() === 'admin';
@@ -130,15 +129,7 @@ async function loadGames(searchTerm = '') {
         
         gamesList.innerHTML = '<div class="loading">ЗАГРУЗКА...</div>';
         
-        let q;
-        if (currentFilter === 'popular') {
-            q = query(collection(db, "games"), orderBy("downloads", "desc"));
-        } else if (currentFilter === 'liked') {
-            q = query(collection(db, "games"), orderBy("likes", "desc"));
-        } else {
-            q = query(collection(db, "games"), orderBy("createdAt", "desc"));
-        }
-        
+        const q = query(collection(db, "games"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
         
         gamesData = [];
@@ -153,9 +144,9 @@ async function loadGames(searchTerm = '') {
         querySnapshot.forEach((doc) => {
             const game = { id: doc.id, ...doc.data() };
             
-            if (!game.likes) game.likes = 0;
             if (!game.downloads) game.downloads = 0;
             if (!game.verified) game.verified = false;
+            if (!game.images) game.images = [];
             
             filteredGames.push(game);
         });
@@ -203,118 +194,80 @@ function createGameCard(game) {
     
     const verifiedBadge = game.verified ? '<span class="verified-badge" title="Проверено на вирусы">✓</span>' : '';
     
+    const shortDesc = game.description ? 
+        (game.description.length > 100 ? game.description.substring(0, 100) + '...' : game.description) 
+        : '...';
+    
     card.innerHTML = `
         <div class="cover">${coverHtml}</div>
         <h3>${game.title || 'БЕЗ НАЗВАНИЯ'} ${verifiedBadge}</h3>
-        <div class="description">${game.description || '...'}</div>
+        <div class="description">${shortDesc}</div>
         <div class="game-stats">
-            <button class="like-btn" onclick="window.handleLike('${game.id}', event)">
-                ❤️ <span class="likes-count">${game.likes || 0}</span>
-            </button>
             <span class="stat">⬇️ ${game.downloads || 0}</span>
             <span class="stat ${game.verified ? 'verified' : 'unverified'}">
                 ${game.verified ? '✓ БЕЗОПАСНО' : '⚠ НЕ ПРОВЕРЕНО'}
             </span>
         </div>
-        <a href="${game.torrentLink || '#'}" class="download-btn" onclick="window.handleDownload('${game.id}', event); return false;">[ СКАЧАТЬ ]</a>
     `;
     
     return card;
 }
 
-window.handleDownload = async function(gameId, event) {
-    event.stopPropagation();
-    
-    try {
-        const gameRef = doc(db, "games", gameId);
-        await updateDoc(gameRef, {
-            downloads: increment(1)
-        });
-        
-        const game = gamesData.find(g => g.id === gameId);
-        if (game) {
-            game.downloads = (game.downloads || 0) + 1;
-        }
-        
-        const gameCard = event.target.closest('.game-card');
-        if (gameCard) {
-            const downloadsSpan = gameCard.querySelector('.stat:nth-child(2)');
-            if (downloadsSpan) {
-                const currentDownloads = parseInt(downloadsSpan.textContent.replace('⬇️ ', '')) || 0;
-                downloadsSpan.textContent = `⬇️ ${currentDownloads + 1}`;
-            }
-        }
-        
-        const gameData = gamesData.find(g => g.id === gameId);
-        if (gameData && gameData.torrentLink) {
-            window.open(gameData.torrentLink, '_blank');
-        }
-    } catch (error) {
-        console.error("Ошибка обновления счетчика:", error);
-        const gameData = gamesData.find(g => g.id === gameId);
-        if (gameData && gameData.torrentLink) {
-            window.open(gameData.torrentLink, '_blank');
-        }
-    }
-};
-
-window.handleLike = async function(gameId, event) {
-    event.stopPropagation();
-    
-    if (!currentUser) {
-        alert('Войди, чтобы ставить лайки!');
-        return;
-    }
-    
-    try {
-        const gameRef = doc(db, "games", gameId);
-        await updateDoc(gameRef, {
-            likes: increment(1)
-        });
-        
-        const game = gamesData.find(g => g.id === gameId);
-        if (game) {
-            game.likes = (game.likes || 0) + 1;
-        }
-        
-        const likeBtn = event.currentTarget;
-        const likesSpan = likeBtn.querySelector('.likes-count');
-        if (likesSpan) {
-            const currentLikes = parseInt(likesSpan.textContent) || 0;
-            likesSpan.textContent = currentLikes + 1;
-        }
-        
-        likeBtn.style.background = '#9933ff';
-        likeBtn.style.color = '#0a0a0a';
-        
-    } catch (error) {
-        console.error("Ошибка лайка:", error);
-    }
-};
-
 async function openGameModal(gameId) {
     currentGameId = gameId;
     const game = gamesData.find(g => g.id === gameId);
+    if (!game) return;
     
-    const modal = document.getElementById('comment-modal');
+    const modal = document.getElementById('game-modal');
     if (!modal) return;
     
-    const titleEl = modal.querySelector('.modal-title');
-    if (titleEl) {
-        titleEl.textContent = game?.title || 'КОММЕНТАРИИ';
-    }
+    document.getElementById('game-modal-title').textContent = game.title || 'БЕЗ НАЗВАНИЯ';
+    document.getElementById('game-full-desc').textContent = game.description || 'Нет описания';
+    document.getElementById('game-downloads').innerHTML = `⬇️ ${game.downloads || 0}`;
+    document.getElementById('game-download-link').href = game.torrentLink || '#';
     
-    const verifiedStatus = document.getElementById('modal-verified-status');
-    if (verifiedStatus && game) {
+    const verifiedStatus = document.getElementById('game-modal-verified');
+    if (verifiedStatus) {
         verifiedStatus.className = game.verified ? 'verified' : 'unverified';
         verifiedStatus.innerHTML = game.verified ? 
             '✓ ПРОВЕРЕНО НА ВИРУСЫ' : 
-            '⚠ НЕ ПРОВЕРЕНО (СКАЧИВАЙ НА СВОЙ РИСК)';
+            '⚠ НЕ ПРОВЕРЕНО';
     }
+    
+    const mainImage = document.getElementById('game-main-image');
+    mainImage.innerHTML = game.coverImage ? 
+        `<img src="${game.coverImage}" alt="${game.title}">` : 
+        '<div style="color: #9933ff; display: flex; align-items: center; justify-content: center; height: 100%;">[НЕТ ИЗОБРАЖЕНИЯ]</div>';
+    
+    const thumbnails = document.getElementById('game-thumbnails');
+    thumbnails.innerHTML = '';
+    
+    const allImages = [];
+    if (game.coverImage) allImages.push(game.coverImage);
+    if (game.image1) allImages.push(game.image1);
+    if (game.image2) allImages.push(game.image2);
+    if (game.image3) allImages.push(game.image3);
+    
+    allImages.forEach((imgUrl, index) => {
+        const thumb = document.createElement('div');
+        thumb.className = `thumbnail ${index === 0 ? 'active' : ''}`;
+        thumb.innerHTML = `<img src="${imgUrl}" alt="Thumbnail ${index + 1}" onclick="window.changeMainImage('${imgUrl}', this)">`;
+        thumbnails.appendChild(thumb);
+    });
     
     modal.style.display = 'flex';
     await loadComments(gameId);
 }
+
+window.changeMainImage = function(imgUrl, element) {
+    const mainImage = document.getElementById('game-main-image');
+    mainImage.innerHTML = `<img src="${imgUrl}" alt="Main image">`;
+    
+    document.querySelectorAll('.thumbnail').forEach(thumb => {
+        thumb.classList.remove('active');
+    });
+    element.parentElement.classList.add('active');
+};
 
 async function loadComments(gameId) {
     try {
@@ -354,351 +307,4 @@ async function loadComments(gameId) {
                     <span>${comment.userName || 'ANON'}</span>
                     <span>${dateStr}</span>
                 </div>
-                <div class="comment-text">${comment.text || ''}</div>
-            `;
-            commentsList.appendChild(commentDiv);
-        });
-        
-    } catch (error) {
-        console.error("Ошибка загрузки комментариев:", error);
-        const commentsList = document.getElementById('comments-list');
-        if (commentsList) {
-            commentsList.innerHTML = '<div class="loading">[ ОШИБКА ЗАГРУЗКИ КОММЕНТАРИЕВ ]</div>';
-        }
-    }
-}
-
-async function sendComment() {
-    if (!currentUser) {
-        alert('Сначала войди!');
-        return;
-    }
-    
-    const text = document.getElementById('comment-text');
-    if (!text) return;
-    
-    const commentText = text.value.trim();
-    if (!commentText) return;
-    
-    try {
-        await addDoc(collection(db, "comments"), {
-            gameId: currentGameId,
-            userId: currentUser.uid,
-            userName: currentUser.email.split('@')[0],
-            text: commentText,
-            createdAt: Timestamp.now()
-        });
-        
-        text.value = '';
-        await loadComments(currentGameId);
-    } catch (error) {
-        console.error("Ошибка отправки комментария:", error);
-        alert('Ошибка отправки');
-    }
-}
-
-async function addGame() {
-    if (!currentUser || !isAdmin(currentUser.email.split('@')[0])) {
-        alert('Только Admin может добавлять игры!');
-        return;
-    }
-    
-    const title = document.getElementById('game-title');
-    const desc = document.getElementById('game-desc');
-    const torrent = document.getElementById('game-torrent');
-    const cover = document.getElementById('game-cover');
-    const verified = document.getElementById('game-verified');
-    
-    if (!title || !torrent) return;
-    
-    const titleVal = title.value.trim();
-    const torrentVal = torrent.value.trim();
-    
-    if (!titleVal || !torrentVal) {
-        alert('Название и ссылка обязательны!');
-        return;
-    }
-    
-    try {
-        await addDoc(collection(db, "games"), {
-            title: titleVal,
-            description: desc ? desc.value.trim() || '...' : '...',
-            torrentLink: torrentVal,
-            coverImage: cover ? cover.value.trim() : '',
-            verified: verified ? verified.checked : false,
-            likes: 0,
-            downloads: 0,
-            createdAt: Timestamp.now()
-        });
-        
-        title.value = '';
-        if (desc) desc.value = '';
-        if (torrent) torrent.value = '';
-        if (cover) cover.value = '';
-        if (verified) verified.checked = false;
-        
-        await loadGames(document.getElementById('search-input').value.trim());
-        alert('Игра добавлена!');
-    } catch (error) {
-        console.error("Ошибка добавления игры:", error);
-        alert('Ошибка добавления');
-    }
-}
-
-async function registerUser(username, password) {
-    try {
-        const email = nameToEmail(username);
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        alert('Регистрация успешна!');
-        return userCredential.user;
-    } catch (error) {
-        console.error("Ошибка регистрации:", error);
-        if (error.code === 'auth/email-already-in-use') {
-            alert('Это имя уже занято!');
-        } else if (error.code === 'auth/weak-password') {
-            alert('Пароль слишком простой! Минимум 6 символов');
-        } else {
-            alert('Ошибка регистрации: ' + error.message);
-        }
-        return null;
-    }
-}
-
-async function loginUser(username, password) {
-    try {
-        const email = nameToEmail(username);
-        await signInWithEmailAndPassword(auth, email, password);
-        return true;
-    } catch (error) {
-        console.error("Ошибка входа:", error);
-        if (error.code === 'auth/user-not-found') {
-            alert('Пользователь не найден');
-        } else if (error.code === 'auth/wrong-password') {
-            alert('Неверный пароль');
-        } else {
-            alert('Ошибка входа: ' + error.message);
-        }
-        return false;
-    }
-}
-
-function setupEventListeners() {
-    const showLogin = document.getElementById('show-login');
-    if (showLogin) {
-        showLogin.addEventListener('click', () => {
-            const modal = document.getElementById('login-modal');
-            if (modal) modal.style.display = 'flex';
-        });
-    }
-    
-    const showRegister = document.getElementById('show-register');
-    if (showRegister) {
-        showRegister.addEventListener('click', () => {
-            const modal = document.getElementById('register-modal');
-            if (modal) modal.style.display = 'flex';
-        });
-    }
-    
-    document.querySelectorAll('.close-modal').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const modal = e.target.closest('.modal');
-            if (modal) modal.style.display = 'none';
-        });
-    });
-    
-    const loginBtn = document.getElementById('login-btn');
-    if (loginBtn) {
-        loginBtn.addEventListener('click', async () => {
-            const username = document.getElementById('login-username');
-            const password = document.getElementById('login-password');
-            
-            if (!username || !password) return;
-            
-            const usernameVal = username.value.trim();
-            const passwordVal = password.value;
-            
-            if (!usernameVal || !passwordVal) {
-                alert('Введи имя и пароль!');
-                return;
-            }
-            
-            const success = await loginUser(usernameVal, passwordVal);
-            if (success) {
-                const modal = document.getElementById('login-modal');
-                if (modal) modal.style.display = 'none';
-                username.value = '';
-                password.value = '';
-            }
-        });
-    }
-    
-    const registerBtn = document.getElementById('register-btn');
-    if (registerBtn) {
-        registerBtn.addEventListener('click', async () => {
-            const username = document.getElementById('reg-username');
-            const password = document.getElementById('reg-password');
-            const confirm = document.getElementById('reg-confirm');
-            
-            if (!username || !password || !confirm) return;
-            
-            const usernameVal = username.value.trim();
-            const passwordVal = password.value;
-            const confirmVal = confirm.value;
-            
-            if (!usernameVal || !passwordVal) {
-                alert('Заполни все поля!');
-                return;
-            }
-            
-            if (passwordVal !== confirmVal) {
-                alert('Пароли не совпадают!');
-                return;
-            }
-            
-            if (passwordVal.length < 6) {
-                alert('Пароль должен быть минимум 6 символов');
-                return;
-            }
-            
-            const user = await registerUser(usernameVal, passwordVal);
-            if (user) {
-                const modal = document.getElementById('register-modal');
-                if (modal) modal.style.display = 'none';
-                username.value = '';
-                password.value = '';
-                if (confirm) confirm.value = '';
-            }
-        });
-    }
-    
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            signOut(auth);
-        });
-    }
-    
-    const addGameBtn = document.getElementById('add-game-btn');
-    if (addGameBtn) {
-        addGameBtn.addEventListener('click', addGame);
-    }
-    
-    const sendCommentBtn = document.getElementById('send-comment');
-    if (sendCommentBtn) {
-        sendCommentBtn.addEventListener('click', sendComment);
-    }
-    
-    const commentText = document.getElementById('comment-text');
-    if (commentText) {
-        commentText.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key === 'Enter') {
-                sendComment();
-            }
-        });
-    }
-    
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-    });
-    
-    const loginPassword = document.getElementById('login-password');
-    if (loginPassword) {
-        loginPassword.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const btn = document.getElementById('login-btn');
-                if (btn) btn.click();
-            }
-        });
-    }
-    
-    const regConfirm = document.getElementById('reg-confirm');
-    if (regConfirm) {
-        regConfirm.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const btn = document.getElementById('register-btn');
-                if (btn) btn.click();
-            }
-        });
-    }
-    
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            loadGames(e.target.value.trim());
-        });
-    }
-    
-    const filterPopular = document.getElementById('filter-popular');
-    if (filterPopular) {
-        filterPopular.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            filterPopular.classList.add('active');
-            currentFilter = 'popular';
-            loadGames(document.getElementById('search-input').value.trim());
-        });
-    }
-    
-    const filterLiked = document.getElementById('filter-liked');
-    if (filterLiked) {
-        filterLiked.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            filterLiked.classList.add('active');
-            currentFilter = 'liked';
-            loadGames(document.getElementById('search-input').value.trim());
-        });
-    }
-    
-    const filterNew = document.getElementById('filter-new');
-    if (filterNew) {
-        filterNew.addEventListener('click', () => {
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            filterNew.classList.add('active');
-            currentFilter = 'new';
-            loadGames(document.getElementById('search-input').value.trim());
-        });
-    }
-}
-
-onAuthStateChanged(auth, (user) => {
-    currentUser = user;
-    
-    const unauthButtons = document.getElementById('unauth-buttons');
-    const userInfo = document.getElementById('user-info');
-    const displayName = document.getElementById('display-name');
-    const adminPanel = document.getElementById('admin-panel');
-    
-    if (user) {
-        const username = user.email.split('@')[0];
-        
-        if (unauthButtons) unauthButtons.style.display = 'none';
-        if (userInfo) userInfo.style.display = 'block';
-        if (displayName) displayName.textContent = `[ ${username} ]`;
-        
-        if (adminPanel) {
-            if (isAdmin(username)) {
-                adminPanel.style.display = 'block';
-                console.log("Админ панель показана");
-            } else {
-                adminPanel.style.display = 'none';
-            }
-        }
-        
-        console.log(`✅ ВОШЕЛ: ${username}`);
-    } else {
-        if (unauthButtons) unauthButtons.style.display = 'flex';
-        if (userInfo) userInfo.style.display = 'none';
-        if (adminPanel) adminPanel.style.display = 'none';
-        
-        console.log('❌ ВЫШЕЛ');
-    }
-});
-
-window.addEventListener('load', () => {
-    init3D();
-    loadGames();
-    setupEventListeners();
-});
+                <div class="comment
