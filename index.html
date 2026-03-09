@@ -36,14 +36,9 @@
             </div>
         </header>
 
-        <!-- Строка поиска и фильтры -->
+        <!-- Строка поиска -->
         <div class="search-section">
             <input type="text" id="search-input" placeholder="ПОИСК ПО НАЗВАНИЮ..." class="input search-input">
-            <div class="filters">
-                <button id="filter-new" class="btn-small filter-btn active">[ НОВЫЕ ]</button>
-                <button id="filter-popular" class="btn-small filter-btn">[ ПОПУЛЯРНЫЕ ]</button>
-                <button id="filter-liked" class="btn-small filter-btn">[ ЛУЧШИЕ ]</button>
-            </div>
         </div>
 
         <!-- Модальное окно входа -->
@@ -78,9 +73,12 @@
             <div class="admin-form">
                 <h3>┌─[ ПАНЕЛЬ УПРАВЛЕНИЯ ]─[ ADMIN ]</h3>
                 <input type="text" id="game-title" placeholder="НАЗВАНИЕ ИГРЫ" class="input">
-                <textarea id="game-desc" placeholder="ОПИСАНИЕ" class="input" rows="3"></textarea>
+                <textarea id="game-desc" placeholder="ПОЛНОЕ ОПИСАНИЕ" class="input" rows="4"></textarea>
                 <input type="text" id="game-torrent" placeholder="MAGNET-ССЫЛКА" class="input">
-                <input type="text" id="game-cover" placeholder="URL ОБЛОЖКИ" class="input">
+                <input type="text" id="game-cover" placeholder="ГЛАВНАЯ ОБЛОЖКА (URL)" class="input">
+                <input type="text" id="game-image1" placeholder="ДОПОЛНИТЕЛЬНОЕ ФОТО 1 (URL)" class="input">
+                <input type="text" id="game-image2" placeholder="ДОПОЛНИТЕЛЬНОЕ ФОТО 2 (URL)" class="input">
+                <input type="text" id="game-image3" placeholder="ДОПОЛНИТЕЛЬНОЕ ФОТО 3 (URL)" class="input">
                 <label class="checkbox-label">
                     <input type="checkbox" id="game-verified"> ПРОВЕРЕНО НА ВИРУСЫ
                 </label>
@@ -98,19 +96,45 @@
             </div>
         </main>
 
-        <!-- Модальное окно с комментариями -->
-        <div id="comment-modal" class="modal" style="display: none;">
-            <div class="modal-content">
+        <!-- Модальное окно игры (профиль) -->
+        <div id="game-modal" class="modal" style="display: none;">
+            <div class="modal-content game-profile">
                 <div class="modal-header">
-                    <span class="modal-title"></span>
-                    <div id="modal-verified-status" class="verified-status"></div>
+                    <span class="modal-title" id="game-modal-title"></span>
+                    <div id="game-modal-verified" class="verified-status"></div>
                     <button class="close-modal">[X]</button>
                 </div>
-                <div class="comments-section">
-                    <div id="comments-list" class="comments-list"></div>
-                    <div class="add-comment">
-                        <textarea id="comment-text" placeholder="КОММЕНТАРИЙ..." class="input" rows="2"></textarea>
-                        <button id="send-comment" class="btn-small">[ ОТПРАВИТЬ ]</button>
+                
+                <div class="game-profile-content">
+                    <!-- Галерея изображений -->
+                    <div class="game-gallery">
+                        <div class="main-image" id="game-main-image"></div>
+                        <div class="thumbnails" id="game-thumbnails"></div>
+                    </div>
+                    
+                    <!-- Полное описание -->
+                    <div class="game-full-description">
+                        <h4>ОПИСАНИЕ:</h4>
+                        <p id="game-full-desc"></p>
+                    </div>
+                    
+                    <!-- Информация и кнопка скачивания -->
+                    <div class="game-info">
+                        <div class="game-meta">
+                            <span class="stat" id="game-downloads">⬇️ 0</span>
+                            <span class="stat" id="game-verified-status"></span>
+                        </div>
+                        <a href="#" id="game-download-link" class="download-btn large" target="_blank">[ СКАЧАТЬ ТОРРЕНТ ]</a>
+                    </div>
+                    
+                    <!-- Комментарии -->
+                    <div class="comments-section-full">
+                        <h4>КОММЕНТАРИИ:</h4>
+                        <div id="comments-list" class="comments-list"></div>
+                        <div class="add-comment">
+                            <textarea id="comment-text" placeholder="КОММЕНТАРИЙ..." class="input" rows="2"></textarea>
+                            <button id="send-comment" class="btn-small">[ ОТПРАВИТЬ ]</button>
+                        </div>
                     </div>
                 </div>
             </div>
