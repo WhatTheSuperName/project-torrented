@@ -345,30 +345,6 @@ body {
     color: #0a0a0a;
 }
 
-.like-btn {
-    background: transparent;
-    border: 1px solid var(--primary);
-    color: var(--primary);
-    padding: 5px 10px;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    border-radius: 3px;
-    font-size: 12px;
-}
-
-.like-btn:hover {
-    background: var(--primary);
-    color: var(--bg);
-}
-
-.like-btn.liked {
-    background: var(--primary);
-    color: var(--bg);
-}
-
 .comments-list {
     margin-bottom: 20px;
     max-height: 300px;
