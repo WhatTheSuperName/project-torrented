@@ -153,7 +153,7 @@ async function loadGames(searchTerm = '') {
         if (searchTerm) {
             const term = searchTerm.toLowerCase();
             filteredGames = filteredGames.filter(game => 
-                game.title.toLowerCase().includes(term)
+                game.title && game.title.toLowerCase().includes(term)
             );
         }
         
