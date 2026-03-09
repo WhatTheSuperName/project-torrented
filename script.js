@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, Timestamp } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, query, orderBy, where, Timestamp, increment } from "firebase/firestore";
 import * as THREE from 'three';
 
 const firebaseConfig = {
@@ -19,6 +19,7 @@ const db = getFirestore(app);
 let currentUser = null;
 let currentGameId = null;
 let gamesData = [];
+let currentFilter = 'all';
 
 function isAdmin(username) {
     return username && username.toLowerCase() === 'admin';
@@ -122,14 +123,22 @@ function nameToEmail(username) {
     return username.toLowerCase() + '@project.torrented';
 }
 
-async function loadGames() {
+async function loadGames(searchTerm = '') {
     try {
         const gamesList = document.getElementById('games-list');
         if (!gamesList) return;
         
         gamesList.innerHTML = '<div class="loading">ЗАГРУЗКА...</div>';
         
-        const q = query(collection(db, "games"), orderBy("createdAt", "desc"));
+        let q;
+        if (currentFilter === 'popular') {
+            q = query(collection(db, "games"), orderBy("downloads", "desc"));
+        } else if (currentFilter === 'liked') {
+            q = query(collection(db, "games"), orderBy("likes", "desc"));
+        } else {
+            q = query(collection(db, "games"), orderBy("createdAt", "desc"));
+        }
+        
         const querySnapshot = await getDocs(q);
         
         gamesData = [];
@@ -140,9 +149,32 @@ async function loadGames() {
             return;
         }
         
+        let filteredGames = [];
         querySnapshot.forEach((doc) => {
             const game = { id: doc.id, ...doc.data() };
-            gamesData.push(game);
+            
+            if (!game.likes) game.likes = 0;
+            if (!game.downloads) game.downloads = 0;
+            if (!game.verified) game.verified = false;
+            
+            filteredGames.push(game);
+        });
+        
+        if (searchTerm) {
+            const term = searchTerm.toLowerCase();
+            filteredGames = filteredGames.filter(game => 
+                game.title.toLowerCase().includes(term)
+            );
+        }
+        
+        gamesData = filteredGames;
+        
+        if (filteredGames.length === 0) {
+            gamesList.innerHTML = '<div class="loading">[ НИЧЕГО НЕ НАЙДЕНО ]</div>';
+            return;
+        }
+        
+        filteredGames.forEach(game => {
             gamesList.appendChild(createGameCard(game));
         });
         
@@ -169,15 +201,76 @@ function createGameCard(game) {
         }
     }
     
+    const verifiedBadge = game.verified ? '<span class="verified-badge" title="Проверено на вирусы">✓</span>' : '';
+    
     card.innerHTML = `
         <div class="cover">${coverHtml}</div>
-        <h3>${game.title || 'БЕЗ НАЗВАНИЯ'}</h3>
+        <h3>${game.title || 'БЕЗ НАЗВАНИЯ'} ${verifiedBadge}</h3>
         <div class="description">${game.description || '...'}</div>
-        <a href="${game.torrentLink || '#'}" class="download-btn" onclick="event.stopPropagation()" target="_blank">[ СКАЧАТЬ ]</a>
+        <div class="game-stats">
+            <span class="stat">❤️ ${game.likes || 0}</span>
+            <span class="stat">⬇️ ${game.downloads || 0}</span>
+            <span class="stat ${game.verified ? 'verified' : 'unverified'}">
+                ${game.verified ? '✓ БЕЗОПАСНО' : '⚠ НЕ ПРОВЕРЕНО'}
+            </span>
+        </div>
+        <a href="${game.torrentLink || '#'}" class="download-btn" onclick="event.stopPropagation(); handleDownload('${game.id}'); return false;">[ СКАЧАТЬ ]</a>
     `;
     
     return card;
 }
+
+window.handleDownload = async function(gameId) {
+    try {
+        const gameRef = doc(db, "games", gameId);
+        await updateDoc(gameRef, {
+            downloads: increment(1)
+        });
+        
+        const game = gamesData.find(g => g.id === gameId);
+        if (game) {
+            game.downloads = (game.downloads || 0) + 1;
+        }
+        
+        window.open(game.torrentLink, '_blank');
+    } catch (error) {
+        console.error("Ошибка обновления счетчика:", error);
+        const game = gamesData.find(g => g.id === gameId);
+        if (game && game.torrentLink) {
+            window.open(game.torrentLink, '_blank');
+        }
+    }
+};
+
+window.likeGame = async function(gameId, event) {
+    event.stopPropagation();
+    
+    if (!currentUser) {
+        alert('Войди, чтобы ставить лайки!');
+        return;
+    }
+    
+    try {
+        const gameRef = doc(db, "games", gameId);
+        await updateDoc(gameRef, {
+            likes: increment(1)
+        });
+        
+        const game = gamesData.find(g => g.id === gameId);
+        if (game) {
+            game.likes = (game.likes || 0) + 1;
+        }
+        
+        const likesSpan = event.currentTarget.querySelector('.likes-count');
+        if (likesSpan) {
+            const currentLikes = parseInt(likesSpan.textContent) || 0;
+            likesSpan.textContent = currentLikes + 1;
+        }
+        
+    } catch (error) {
+        console.error("Ошибка лайка:", error);
+    }
+};
 
 async function openGameModal(gameId) {
     currentGameId = gameId;
@@ -189,6 +282,14 @@ async function openGameModal(gameId) {
     const titleEl = modal.querySelector('.modal-title');
     if (titleEl) {
         titleEl.textContent = game?.title || 'КОММЕНТАРИИ';
+    }
+    
+    const verifiedStatus = document.getElementById('modal-verified-status');
+    if (verifiedStatus && game) {
+        verifiedStatus.className = game.verified ? 'verified' : 'unverified';
+        verifiedStatus.innerHTML = game.verified ? 
+            '✓ ПРОВЕРЕНО НА ВИРУСЫ' : 
+            '⚠ НЕ ПРОВЕРЕНО (СКАЧИВАЙ НА СВОЙ РИСК)';
     }
     
     modal.style.display = 'flex';
@@ -281,6 +382,7 @@ async function addGame() {
     const desc = document.getElementById('game-desc');
     const torrent = document.getElementById('game-torrent');
     const cover = document.getElementById('game-cover');
+    const verified = document.getElementById('game-verified');
     
     if (!title || !torrent) return;
     
@@ -298,6 +400,9 @@ async function addGame() {
             description: desc ? desc.value.trim() || '...' : '...',
             torrentLink: torrentVal,
             coverImage: cover ? cover.value.trim() : '',
+            verified: verified ? verified.checked : false,
+            likes: 0,
+            downloads: 0,
             createdAt: Timestamp.now()
         });
         
@@ -305,8 +410,9 @@ async function addGame() {
         if (desc) desc.value = '';
         if (torrent) torrent.value = '';
         if (cover) cover.value = '';
+        if (verified) verified.checked = false;
         
-        await loadGames();
+        await loadGames(document.getElementById('search-input').value.trim());
         alert('Игра добавлена!');
     } catch (error) {
         console.error("Ошибка добавления игры:", error);
@@ -493,6 +599,37 @@ function setupEventListeners() {
             }
         });
     }
+    
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            loadGames(e.target.value.trim());
+        });
+    }
+    
+    const filterPopular = document.getElementById('filter-popular');
+    if (filterPopular) {
+        filterPopular.addEventListener('click', () => {
+            currentFilter = 'popular';
+            loadGames(document.getElementById('search-input').value.trim());
+        });
+    }
+    
+    const filterLiked = document.getElementById('filter-liked');
+    if (filterLiked) {
+        filterLiked.addEventListener('click', () => {
+            currentFilter = 'liked';
+            loadGames(document.getElementById('search-input').value.trim());
+        });
+    }
+    
+    const filterNew = document.getElementById('filter-new');
+    if (filterNew) {
+        filterNew.addEventListener('click', () => {
+            currentFilter = 'new';
+            loadGames(document.getElementById('search-input').value.trim());
+        });
+    }
 }
 
 onAuthStateChanged(auth, (user) => {
@@ -528,7 +665,6 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// Запуск
 window.addEventListener('load', () => {
     init3D();
     loadGames();
