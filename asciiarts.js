@@ -1,4 +1,3 @@
-// Коллекция ASCII-артов для обложек игр
 export const asciiArts = [
     `
     ╔══════════════════════════════╗
@@ -41,7 +40,6 @@ export const asciiArts = [
     `
 ];
 
-// Функция для получения случайного ASCII-арта
 export function getRandomAscii() {
     return asciiArts[Math.floor(Math.random() * asciiArts.length)];
 }
