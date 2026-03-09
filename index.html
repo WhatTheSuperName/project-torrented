@@ -36,12 +36,10 @@
             </div>
         </header>
 
-        <!-- Строка поиска -->
         <div class="search-section">
             <input type="text" id="search-input" placeholder="ПОИСК ПО НАЗВАНИЮ..." class="input search-input">
         </div>
 
-        <!-- Модальное окно входа -->
         <div id="login-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -54,7 +52,6 @@
             </div>
         </div>
 
-        <!-- Модальное окно регистрации -->
         <div id="register-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -68,7 +65,6 @@
             </div>
         </div>
 
-        <!-- Панель администратора -->
         <div id="admin-panel" style="display: none;">
             <div class="admin-form">
                 <h3>┌─[ ПАНЕЛЬ УПРАВЛЕНИЯ ]─[ ADMIN ]</h3>
@@ -86,7 +82,6 @@
             </div>
         </div>
 
-        <!-- Основной контент - список игр -->
         <main>
             <div class="section-title">
                 <span class="bracket">[</span> ДОСТУПНЫЕ РЕЛИЗЫ <span class="bracket">]</span>
@@ -96,7 +91,6 @@
             </div>
         </main>
 
-        <!-- Модальное окно игры (профиль) -->
         <div id="game-modal" class="modal" style="display: none;">
             <div class="modal-content game-profile">
                 <div class="modal-header">
@@ -106,28 +100,23 @@
                 </div>
                 
                 <div class="game-profile-content">
-                    <!-- Галерея изображений -->
                     <div class="game-gallery">
                         <div class="main-image" id="game-main-image"></div>
                         <div class="thumbnails" id="game-thumbnails"></div>
                     </div>
                     
-                    <!-- Полное описание -->
                     <div class="game-full-description">
                         <h4>ОПИСАНИЕ:</h4>
                         <p id="game-full-desc"></p>
                     </div>
                     
-                    <!-- Информация и кнопка скачивания -->
                     <div class="game-info">
                         <div class="game-meta">
                             <span class="stat" id="game-downloads">⬇️ 0</span>
-                            <span class="stat" id="game-verified-status"></span>
                         </div>
                         <a href="#" id="game-download-link" class="download-btn large" target="_blank">[ СКАЧАТЬ ТОРРЕНТ ]</a>
                     </div>
                     
-                    <!-- Комментарии -->
                     <div class="comments-section-full">
                         <h4>КОММЕНТАРИИ:</h4>
                         <div id="comments-list" class="comments-list"></div>
