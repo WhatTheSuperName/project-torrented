@@ -1,10 +1,8 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy, where, Timestamp } from "firebase/firestore";
 import * as THREE from 'three';
-import { getRandomAscii } from './asciiarts.js';
 
-// Firebase конфиг
 const firebaseConfig = {
     apiKey: "AIzaSyBWEoHWbCH430tklHFxQQUM4OmpDEi0Du0",
     authDomain: "project-torrented.firebaseapp.com",
@@ -14,99 +12,111 @@ const firebaseConfig = {
     appId: "1:810658353738:web:eecca4c92473d6f87fccb3"
 };
 
-// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// Глобальные переменные
 let currentUser = null;
 let currentGameId = null;
 let gamesData = [];
 
-// Проверка на админа (по нику)
 function isAdmin(username) {
     return username && username.toLowerCase() === 'admin';
 }
 
-// Инициализация 3D сцены
 function init3D() {
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x050505);
+    scene.background = new THREE.Color(0x0a0a1a);
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.z = 5;
+    camera.position.z = 8;
+    camera.position.y = 2;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
-    // Создаем куб из ASCII-символов (матричный стиль)
-    const geometry = new THREE.BoxGeometry(2, 2, 2);
+    const geometry = new THREE.TorusKnotGeometry(1, 0.3, 100, 16);
+    const material = new THREE.MeshStandardMaterial({ 
+        color: 0xb300ff,
+        emissive: 0x4d0099,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.8
+    });
     
-    // Создаем текстуру с ASCII-символами
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, 256, 256);
-    ctx.font = '20px Courier New';
-    ctx.fillStyle = '#00ff00';
-    
-    // Рисуем случайные ASCII символы
-    for(let i = 0; i < 50; i++) {
-        const x = Math.random() * 200 + 28;
-        const y = Math.random() * 200 + 28;
-        const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-        ctx.fillText(chars[Math.floor(Math.random() * chars.length)], x, y);
-    }
-    
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.MeshBasicMaterial({ map: texture, wireframe: true, color: 0x00ff00 });
-    
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
+    const torusKnot = new THREE.Mesh(geometry, material);
+    scene.add(torusKnot);
 
-    // Добавляем floating particles
+    const sphereGeometry = new THREE.SphereGeometry(2, 32, 32);
+    const sphereMaterial = new THREE.MeshBasicMaterial({
+        color: 0x4d0099,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.2
+    });
+    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphere.scale.set(1.5, 1.5, 1.5);
+    scene.add(sphere);
+
     const particlesGeometry = new THREE.BufferGeometry();
-    const particlesCount = 1000;
+    const particlesCount = 2000;
     const posArray = new Float32Array(particlesCount * 3);
+    const colorArray = new Float32Array(particlesCount * 3);
     
     for(let i = 0; i < particlesCount * 3; i += 3) {
-        posArray[i] = (Math.random() - 0.5) * 10;
-        posArray[i+1] = (Math.random() - 0.5) * 10;
-        posArray[i+2] = (Math.random() - 0.5) * 10;
+        posArray[i] = (Math.random() - 0.5) * 20;
+        posArray[i+1] = (Math.random() - 0.5) * 20;
+        posArray[i+2] = (Math.random() - 0.5) * 20;
+        
+        colorArray[i] = 0.7;
+        colorArray[i+1] = 0;
+        colorArray[i+2] = 1;
     }
     
     particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+    
     const particlesMaterial = new THREE.PointsMaterial({
-        size: 0.02,
-        color: 0x00ff00,
+        size: 0.05,
+        vertexColors: true,
         transparent: true,
-        opacity: 0.5
+        opacity: 0.6,
+        blending: THREE.AdditiveBlending
     });
     
     const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
     scene.add(particlesMesh);
 
-    // Анимация
+    const ambientLight = new THREE.AmbientLight(0x404060);
+    scene.add(ambientLight);
+
+    const pointLight1 = new THREE.PointLight(0xb300ff, 1, 10);
+    pointLight1.position.set(2, 3, 4);
+    scene.add(pointLight1);
+
+    const pointLight2 = new THREE.PointLight(0x4d0099, 1, 10);
+    pointLight2.position.set(-3, -1, 2);
+    scene.add(pointLight2);
+
     function animate() {
         requestAnimationFrame(animate);
         
-        cube.rotation.x += 0.001;
-        cube.rotation.y += 0.002;
+        torusKnot.rotation.x += 0.005;
+        torusKnot.rotation.y += 0.01;
         
-        particlesMesh.rotation.y += 0.0001;
+        sphere.rotation.x += 0.001;
+        sphere.rotation.y += 0.002;
+        
+        particlesMesh.rotation.y += 0.0002;
         
         renderer.render(scene, camera);
     }
     
     animate();
 
-    // Обработка ресайза окна
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
@@ -114,12 +124,10 @@ function init3D() {
     });
 }
 
-// Преобразование имени в email для Firebase
 function nameToEmail(username) {
-    return `${username}@project.local`;
+    return `${username}@project.torrented`;
 }
 
-// Загрузка игр из Firestore
 async function loadGames() {
     try {
         const gamesList = document.getElementById('games-list');
@@ -146,15 +154,21 @@ async function loadGames() {
     }
 }
 
-// Создание карточки игры
 function createGameCard(game) {
     const card = document.createElement('div');
     card.className = 'game-card';
     card.onclick = () => openGameModal(game.id);
     
-    const coverHtml = game.coverImage && game.coverImage.startsWith('http') 
-        ? `<img src="${game.coverImage}" style="width:100%;height:100%;object-fit:cover;">`
-        : `<pre>${game.coverImage || getRandomAscii()}</pre>`;
+    let coverHtml = '';
+    if (game.coverImage) {
+        if (game.coverImage.startsWith('http')) {
+            coverHtml = `<img src="${game.coverImage}" alt="${game.title}">`;
+        } else {
+            coverHtml = `<div style="color: #b300ff; font-size: 10px;">${game.coverImage.substring(0, 100)}</div>`;
+        }
+    } else {
+        coverHtml = `<div style="color: #b300ff;">[НЕТ ОБЛОЖКИ]</div>`;
+    }
     
     card.innerHTML = `
         <div class="cover">${coverHtml}</div>
@@ -166,19 +180,17 @@ function createGameCard(game) {
     return card;
 }
 
-// Открытие модального окна с комментариями
 async function openGameModal(gameId) {
     currentGameId = gameId;
     const game = gamesData.find(g => g.id === gameId);
     
     const modal = document.getElementById('comment-modal');
-    modal.querySelector('.modal-title').textContent = game?.title || 'КОММЕНТАРИИ';
+    document.querySelector('.modal-title').textContent = game?.title || 'КОММЕНТАРИИ';
     modal.style.display = 'flex';
     
     await loadComments(gameId);
 }
 
-// Загрузка комментариев
 async function loadComments(gameId) {
     try {
         const commentsList = document.getElementById('comments-list');
@@ -197,10 +209,14 @@ async function loadComments(gameId) {
             const comment = doc.data();
             const commentDiv = document.createElement('div');
             commentDiv.className = 'comment';
+            
+            const date = comment.createdAt?.toDate();
+            const dateStr = date ? `${date.toLocaleDateString()} ${date.toLocaleTimeString()}` : '??';
+            
             commentDiv.innerHTML = `
                 <div class="comment-header">
                     <span>${comment.userName || 'ANON'}</span>
-                    <span>${comment.createdAt?.toDate().toLocaleString() || '??'}</span>
+                    <span>${dateStr}</span>
                 </div>
                 <div class="comment-text">${comment.text || ''}</div>
             `;
@@ -215,7 +231,6 @@ async function loadComments(gameId) {
     }
 }
 
-// Отправка комментария
 async function sendComment() {
     if (!currentUser) {
         alert('Сначала войди!');
@@ -229,7 +244,7 @@ async function sendComment() {
         await addDoc(collection(db, "comments"), {
             gameId: currentGameId,
             userId: currentUser.uid,
-            userName: currentUser.email.split('@')[0], // Имя из email
+            userName: currentUser.email.split('@')[0],
             text: text,
             createdAt: Timestamp.now()
         });
@@ -242,7 +257,6 @@ async function sendComment() {
     }
 }
 
-// Добавление игры (только для Admin)
 async function addGame() {
     if (!isAdmin(currentUser?.email.split('@')[0])) {
         alert('Только Admin может добавлять игры!');
@@ -264,11 +278,10 @@ async function addGame() {
             title: title,
             description: desc || '...',
             torrentLink: torrent,
-            coverImage: cover || getRandomAscii(),
+            coverImage: cover || '',
             createdAt: Timestamp.now()
         });
         
-        // Очистка формы
         document.getElementById('game-title').value = '';
         document.getElementById('game-desc').value = '';
         document.getElementById('game-torrent').value = '';
@@ -282,9 +295,49 @@ async function addGame() {
     }
 }
 
-// Настройка слушателей событий
+async function registerUser(username, password) {
+    try {
+        const email = nameToEmail(username);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        alert('Регистрация успешна!');
+        return userCredential.user;
+    } catch (error) {
+        console.error("Ошибка регистрации:", error);
+        if (error.code === 'auth/email-already-in-use') {
+            alert('Это имя уже занято!');
+        } else {
+            alert('Ошибка регистрации: ' + error.message);
+        }
+        return null;
+    }
+}
+
+async function loginUser(username, password) {
+    try {
+        const email = nameToEmail(username);
+        await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+        console.error("Ошибка входа:", error);
+        alert('Неверное имя или пароль');
+    }
+}
+
 function setupEventListeners() {
-    // Логин
+    document.getElementById('show-login').addEventListener('click', () => {
+        document.getElementById('login-modal').style.display = 'flex';
+    });
+    
+    document.getElementById('show-register').addEventListener('click', () => {
+        document.getElementById('register-modal').style.display = 'flex';
+    });
+    
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const modal = e.target.closest('.modal');
+            if (modal) modal.style.display = 'none';
+        });
+    });
+    
     document.getElementById('login-btn').addEventListener('click', async () => {
         const username = document.getElementById('login-username').value.trim();
         const password = document.getElementById('login-password').value;
@@ -294,72 +347,102 @@ function setupEventListeners() {
             return;
         }
         
-        try {
-            const email = nameToEmail(username);
-            await signInWithEmailAndPassword(auth, email, password);
-        } catch (error) {
-            console.error("Ошибка входа:", error);
-            alert('Неверное имя или пароль');
+        await loginUser(username, password);
+        document.getElementById('login-modal').style.display = 'none';
+        document.getElementById('login-username').value = '';
+        document.getElementById('login-password').value = '';
+    });
+    
+    document.getElementById('register-btn').addEventListener('click', async () => {
+        const username = document.getElementById('reg-username').value.trim();
+        const password = document.getElementById('reg-password').value;
+        const confirm = document.getElementById('reg-confirm').value;
+        
+        if (!username || !password) {
+            alert('Заполни все поля!');
+            return;
+        }
+        
+        if (password !== confirm) {
+            alert('Пароли не совпадают!');
+            return;
+        }
+        
+        if (password.length < 6) {
+            alert('Пароль должен быть минимум 6 символов');
+            return;
+        }
+        
+        const user = await registerUser(username, password);
+        if (user) {
+            document.getElementById('register-modal').style.display = 'none';
+            document.getElementById('reg-username').value = '';
+            document.getElementById('reg-password').value = '';
+            document.getElementById('reg-confirm').value = '';
         }
     });
     
-    // Логаут
     document.getElementById('logout-btn').addEventListener('click', () => {
         signOut(auth);
     });
     
-    // Добавление игры
     document.getElementById('add-game-btn').addEventListener('click', addGame);
     
-    // Отправка комментария
     document.getElementById('send-comment').addEventListener('click', sendComment);
     
-    // Закрытие модалки
-    document.querySelector('.close-modal').addEventListener('click', () => {
-        document.getElementById('comment-modal').style.display = 'none';
-    });
-    
-    // Закрытие по клику вне модалки
-    document.getElementById('comment-modal').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('comment-modal')) {
-            e.target.style.display = 'none';
+    document.getElementById('comment-text').addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'Enter') {
+            sendComment();
         }
     });
     
-    // Enter в поле пароля
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+    
     document.getElementById('login-password').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             document.getElementById('login-btn').click();
         }
     });
     
-    // Enter в поле комментария (Ctrl+Enter)
-    document.getElementById('comment-text').addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.key === 'Enter') {
-            sendComment();
+    document.getElementById('reg-confirm').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('register-btn').click();
         }
     });
 }
 
-// Отслеживание состояния авторизации
 onAuthStateChanged(auth, (user) => {
     currentUser = user;
     
     if (user) {
         const username = user.email.split('@')[0];
         
-        // Обновляем UI
-        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('unauth-buttons').style.display = 'none';
         document.getElementById('user-info').style.display = 'block';
         document.getElementById('display-name').textContent = `[ ${username} ]`;
         
-        // Показываем панель админа если нужно
         if (isAdmin(username)) {
             document.getElementById('admin-panel').style.display = 'block';
         } else {
             document.getElementById('admin-panel').style.display = 'none';
         }
         
-        console.log(`%c✅ ВОШЕЛ: ${username}`, 'color: #0f0');
+        console.log(`%c✅ ВОШЕЛ: ${username}`, 'color: #b300ff');
     } else {
-        // Пользователь выше
+        document.getElementById('unauth-buttons').style.display = 'flex';
+        document.getElementById('user-info').style.display = 'none';
+        document.getElementById('admin-panel').style.display = 'none';
+        
+        console.log('%c❌ ВЫШЕЛ', 'color: #b300ff');
+    }
+});
+
+init3D();
+loadGames();
+setupEventListeners();
