@@ -323,3 +323,115 @@ body {
     display: flex;
     gap: 5px;
 }
+.search-section {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.search-input {
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 10px;
+}
+
+.filters {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    background: transparent;
+    border: 1px solid #9933ff;
+    color: #9933ff;
+}
+
+.filter-btn.active {
+    background: #9933ff;
+    color: #0a0a0a;
+}
+
+.game-stats {
+    display: flex;
+    gap: 15px;
+    margin: 10px 0;
+    font-size: 12px;
+    color: #9933ff;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.verified {
+    color: #00ff00;
+}
+
+.unverified {
+    color: #ff6600;
+}
+
+.verified-badge {
+    color: #00ff00;
+    margin-left: 5px;
+    font-size: 14px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #9933ff;
+    margin: 10px 5px;
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #9933ff;
+}
+
+.verified-status {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 3px;
+}
+
+#modal-verified-status.verified {
+    background: rgba(0, 255, 0, 0.1);
+    border: 1px solid #00ff00;
+    color: #00ff00;
+}
+
+#modal-verified-status.unverified {
+    background: rgba(255, 102, 0, 0.1);
+    border: 1px solid #ff6600;
+    color: #ff6600;
+}
+
+.like-btn {
+    background: transparent;
+    border: 1px solid #9933ff;
+    color: #9933ff;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.like-btn:hover {
+    background: #9933ff;
+    color: #0a0a0a;
+}
+
+.like-btn.liked {
+    background: #9933ff;
+    color: #0a0a0a;
+}
