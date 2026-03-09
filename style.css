@@ -7,7 +7,7 @@
 body {
     font-family: 'Courier New', monospace;
     background-color: #0a0a0a;
-    color: #0f0;
+    color: #b300ff;
     line-height: 1.6;
     overflow-x: hidden;
     position: relative;
@@ -29,56 +29,58 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
-    text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+    text-shadow: 0 0 5px rgba(179, 0, 255, 0.5);
     backdrop-filter: blur(2px);
 }
 
-.ascii-logo {
-    color: #0f0;
+.logo {
+    color: #b300ff;
     font-size: 10px;
     line-height: 1.2;
     text-align: center;
     margin: 20px 0;
-    text-shadow: 0 0 10px #0f0;
+    text-shadow: 0 0 10px #b300ff, 0 0 20px #4d0099;
     animation: glow 2s ease-in-out infinite alternate;
 }
 
 @keyframes glow {
-    from { text-shadow: 0 0 5px #0f0, 0 0 10px #0f0; }
-    to { text-shadow: 0 0 10px #0f0, 0 0 20px #0f0, 0 0 30px #0f0; }
+    from { text-shadow: 0 0 5px #b300ff, 0 0 10px #4d0099; }
+    to { text-shadow: 0 0 15px #b300ff, 0 0 25px #b300ff, 0 0 35px #4d0099; }
 }
 
 .auth-section {
     position: absolute;
     top: 20px;
     right: 20px;
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid #0f0;
+    background: rgba(10, 0, 20, 0.8);
+    border: 1px solid #b300ff;
     padding: 10px;
     border-radius: 5px;
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 15px rgba(179, 0, 255, 0.3);
 }
 
-.ascii-input {
-    background: #000;
-    border: 1px solid #0f0;
-    color: #0f0;
+.input {
+    background: #0a0a0a;
+    border: 1px solid #b300ff;
+    color: #b300ff;
     padding: 8px 12px;
     font-family: 'Courier New', monospace;
     font-size: 14px;
     margin: 5px;
     border-radius: 3px;
     outline: none;
+    width: calc(100% - 12px);
 }
 
-.ascii-input:focus {
-    box-shadow: 0 0 10px #0f0;
+.input:focus {
+    box-shadow: 0 0 10px #b300ff;
+    border-color: #ff00ff;
 }
 
 .btn, .btn-small {
-    background: #000;
-    border: 1px solid #0f0;
-    color: #0f0;
+    background: #0a0a0a;
+    border: 1px solid #b300ff;
+    color: #b300ff;
     padding: 8px 15px;
     font-family: 'Courier New', monospace;
     cursor: pointer;
@@ -88,9 +90,10 @@ body {
 }
 
 .btn:hover, .btn-small:hover {
-    background: #0f0;
-    color: #000;
-    box-shadow: 0 0 15px #0f0;
+    background: #b300ff;
+    color: #0a0a0a;
+    box-shadow: 0 0 15px #b300ff;
+    border-color: #ff00ff;
 }
 
 .btn-small {
@@ -99,16 +102,16 @@ body {
 }
 
 #admin-panel {
-    background: rgba(0, 0, 0, 0.9);
-    border: 2px solid #0f0;
+    background: rgba(10, 0, 20, 0.95);
+    border: 2px solid #b300ff;
     padding: 20px;
     margin: 20px 0;
     border-radius: 5px;
-    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 30px rgba(179, 0, 255, 0.5);
 }
 
 .admin-form h3 {
-    color: #0f0;
+    color: #b300ff;
     margin-bottom: 15px;
     font-size: 16px;
 }
@@ -117,13 +120,13 @@ body {
     text-align: center;
     font-size: 24px;
     margin: 40px 0 20px;
-    color: #0f0;
+    color: #b300ff;
     text-transform: uppercase;
     letter-spacing: 3px;
 }
 
 .bracket {
-    color: #0f0;
+    color: #b300ff;
     animation: blink 1s infinite;
 }
 
@@ -140,8 +143,8 @@ body {
 }
 
 .game-card {
-    background: rgba(0, 0, 0, 0.8);
-    border: 1px solid #0f0;
+    background: rgba(10, 0, 20, 0.8);
+    border: 1px solid #b300ff;
     border-radius: 5px;
     padding: 15px;
     cursor: pointer;
@@ -150,21 +153,22 @@ body {
 }
 
 .game-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 25px rgba(0, 255, 0, 0.5);
-    border-color: #fff;
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 5px 25px rgba(179, 0, 255, 0.7);
+    border-color: #ff00ff;
+    background: rgba(20, 0, 30, 0.9);
 }
 
 .game-card h3 {
-    color: #0f0;
+    color: #b300ff;
     font-size: 18px;
     margin-bottom: 10px;
-    border-bottom: 1px dashed #0f0;
+    border-bottom: 1px dashed #b300ff;
     padding-bottom: 5px;
 }
 
 .game-card .description {
-    color: #0a0;
+    color: #9900ff;
     font-size: 14px;
     margin: 10px 0;
     max-height: 60px;
@@ -174,37 +178,38 @@ body {
 .game-card .cover {
     width: 100%;
     height: 150px;
-    background: #111;
+    background: #0a0a0a;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: monospace;
-    font-size: 10px;
-    color: #0f0;
-    border: 1px solid #0f0;
+    color: #b300ff;
+    border: 1px solid #b300ff;
     margin-bottom: 10px;
     overflow: hidden;
+    border-radius: 3px;
 }
 
-.game-card .cover pre {
-    font-size: 6px;
-    line-height: 1;
+.game-card .cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .download-btn {
     display: inline-block;
     padding: 5px 15px;
-    background: #000;
-    border: 1px solid #0f0;
-    color: #0f0;
+    background: #0a0a0a;
+    border: 1px solid #b300ff;
+    color: #b300ff;
     text-decoration: none;
     font-size: 12px;
     transition: all 0.3s;
+    border-radius: 3px;
 }
 
 .download-btn:hover {
-    background: #0f0;
-    color: #000;
+    background: #b300ff;
+    color: #0a0a0a;
 }
 
 .modal {
@@ -221,14 +226,15 @@ body {
 }
 
 .modal-content {
-    background: #000;
-    border: 2px solid #0f0;
-    width: 80%;
-    max-width: 600px;
+    background: #0a0a0a;
+    border: 2px solid #b300ff;
+    width: 90%;
+    max-width: 400px;
     max-height: 80vh;
     overflow-y: auto;
     padding: 20px;
-    box-shadow: 0 0 50px rgba(0, 255, 0, 0.5);
+    box-shadow: 0 0 50px rgba(179, 0, 255, 0.7);
+    border-radius: 5px;
 }
 
 .modal-header {
@@ -236,21 +242,24 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
-    border-bottom: 1px solid #0f0;
+    border-bottom: 1px solid #b300ff;
     padding-bottom: 10px;
+    color: #b300ff;
+    font-size: 18px;
 }
 
 .close-modal {
     background: none;
-    border: 1px solid #0f0;
-    color: #0f0;
+    border: 1px solid #b300ff;
+    color: #b300ff;
     cursor: pointer;
     padding: 5px 10px;
+    border-radius: 3px;
 }
 
 .close-modal:hover {
-    background: #0f0;
-    color: #000;
+    background: #b300ff;
+    color: #0a0a0a;
 }
 
 .comments-list {
@@ -260,8 +269,8 @@ body {
 }
 
 .comment {
-    background: #111;
-    border: 1px solid #0f0;
+    background: #0f0a1a;
+    border: 1px solid #b300ff;
     padding: 10px;
     margin-bottom: 10px;
     border-radius: 3px;
@@ -270,43 +279,47 @@ body {
 .comment-header {
     display: flex;
     justify-content: space-between;
-    color: #0f0;
+    color: #b300ff;
     font-size: 12px;
     margin-bottom: 5px;
-    border-bottom: 1px dotted #0f0;
+    border-bottom: 1px dotted #b300ff;
     padding-bottom: 3px;
 }
 
 .comment-text {
-    color: #0a0;
+    color: #cc99ff;
     font-size: 14px;
     word-wrap: break-word;
 }
 
 .loading {
     text-align: center;
-    color: #0f0;
+    color: #b300ff;
     font-size: 20px;
     grid-column: 1 / -1;
     padding: 50px;
     animation: blink 1s infinite;
 }
 
-/* Стилизация скроллбара */
 ::-webkit-scrollbar {
     width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-    background: #000;
-    border: 1px solid #0f0;
+    background: #0a0a0a;
+    border: 1px solid #b300ff;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #0f0;
+    background: #b300ff;
     border-radius: 0;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #0a0;
+    background: #9900ff;
+}
+
+#unauth-buttons {
+    display: flex;
+    gap: 5px;
 }
