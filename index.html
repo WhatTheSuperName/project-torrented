@@ -7,72 +7,82 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- ASCII приветствие в консоли (пасхалка) -->
     <script>
-        console.log('%c╔════════════════════════════════════╗\n║     PROJECT: TORRENTED v1.0     ║\n║    Welcome, anonymous hacker    ║\n╚════════════════════════════════════╝', 'color: #0f0; font-size: 12px;');
+        console.log('%c╔════════════════════════════════════╗\n║     PROJECT: TORRENTED v1.0     ║\n║    Welcome, anonymous hacker    ║\n╚════════════════════════════════════╝', 'color: #b300ff; font-size: 12px;');
     </script>
 
-    <!-- 3D сцена будет здесь (Three.js вставит canvas) -->
     <div id="canvas-container"></div>
 
-    <!-- Основной контент -->
     <div class="content">
-        <!-- Шапка с ASCII-лого -->
         <header>
-            <pre class="ascii-logo">
+            <pre class="logo">
     ██████╗ ██████╗  ██████╗      ██╗███████╗ ██████╗████████╗
     ██╔══██╗██╔══██╗██╔═══██╗     ██║██╔════╝██╔════╝╚══██╔══╝
     ██████╔╝██████╔╝██║   ██║     ██║█████╗  ██║        ██║   
     ██╔═══╝ ██╔══██╗██║   ██║██   ██║██╔══╝  ██║        ██║   
     ██║     ██║  ██║╚██████╔╝╚█████╔╝███████╗╚██████╗   ██║   
     ╚═╝     ╚═╝  ╚═╝ ╚═════╝  ╚════╝ ╚══════╝ ╚═════╝   ╚═╝   
-                                                             
-            ████████╗ ██████╗ ██████╗ ██████╗ ███████╗███╗   ██╗████████╗███████╗██████╗ 
-            ╚══██╔══╝██╔═══██╗██╔══██╗██╔══██╗██╔════╝████╗  ██║╚══██╔══╝██╔════╝██╔══██╗
-               ██║   ██║   ██║██████╔╝██║  ██║█████╗  ██╔██╗ ██║   ██║   █████╗  ██║  ██║
-               ██║   ██║   ██║██╔══██╗██║  ██║██╔══╝  ██║╚██╗██║   ██║   ██╔══╝  ██║  ██║
-               ██║   ╚██████╔╝██║  ██║██████╔╝███████╗██║ ╚████║   ██║   ███████╗██████╔╝
-               ╚═╝    ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝   ╚══════╝╚═════╝ 
             </pre>
             
-            <!-- Кнопки авторизации -->
             <div class="auth-section">
                 <div id="user-info" style="display: none;">
                     <span id="display-name"></span>
                     <button id="logout-btn" class="btn-small">[ВЫЙТИ]</button>
                 </div>
-                <div id="login-form">
-                    <input type="text" id="login-username" placeholder="ИМЯ" class="ascii-input">
-                    <input type="password" id="login-password" placeholder="ПАРОЛЬ" class="ascii-input">
-                    <button id="login-btn" class="btn">[ВОЙТИ]</button>
+                <div id="unauth-buttons">
+                    <button id="show-login" class="btn">[ВОЙТИ]</button>
+                    <button id="show-register" class="btn">[РЕГИСТРАЦИЯ]</button>
                 </div>
             </div>
         </header>
 
-        <!-- Форма добавления торрента (видна только Admin) -->
-        <div id="admin-panel" style="display: none;">
-            <div class="admin-form">
-                <h3>┌─[ ДОБАВИТЬ ТОРРЕНТ ]─[ ADMIN ]</h3>
-                <input type="text" id="game-title" placeholder="НАЗВАНИЕ ИГРЫ" class="ascii-input">
-                <textarea id="game-desc" placeholder="ОПИСАНИЕ" class="ascii-input" rows="3"></textarea>
-                <input type="text" id="game-torrent" placeholder="MAGNET-ССЫЛКА ИЛИ .TORRENT URL" class="ascii-input">
-                <input type="text" id="game-cover" placeholder="URL ОБЛОЖКИ ИЛИ ASCII-АРТ" class="ascii-input">
-                <button id="add-game-btn" class="btn">[ ЗАГРУЗИТЬ ]</button>
+        <!-- Модальное окно входа -->
+        <div id="login-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span>ВХОД В СИСТЕМУ</span>
+                    <button class="close-modal">[X]</button>
+                </div>
+                <input type="text" id="login-username" placeholder="ИМЯ ПОЛЬЗОВАТЕЛЯ" class="input">
+                <input type="password" id="login-password" placeholder="ПАРОЛЬ" class="input">
+                <button id="login-btn" class="btn" style="width: 100%;">[ВОЙТИ]</button>
             </div>
         </div>
 
-        <!-- Список игр -->
+        <!-- Модальное окно регистрации -->
+        <div id="register-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <span>РЕГИСТРАЦИЯ</span>
+                    <button class="close-modal">[X]</button>
+                </div>
+                <input type="text" id="reg-username" placeholder="ИМЯ ПОЛЬЗОВАТЕЛЯ" class="input">
+                <input type="password" id="reg-password" placeholder="ПАРОЛЬ" class="input">
+                <input type="password" id="reg-confirm" placeholder="ПОВТОРИТЕ ПАРОЛЬ" class="input">
+                <button id="register-btn" class="btn" style="width: 100%;">[СОЗДАТЬ АККАУНТ]</button>
+            </div>
+        </div>
+
+        <div id="admin-panel" style="display: none;">
+            <div class="admin-form">
+                <h3>┌─[ ПАНЕЛЬ УПРАВЛЕНИЯ ]─[ ADMIN ]</h3>
+                <input type="text" id="game-title" placeholder="НАЗВАНИЕ ИГРЫ" class="input">
+                <textarea id="game-desc" placeholder="ОПИСАНИЕ" class="input" rows="3"></textarea>
+                <input type="text" id="game-torrent" placeholder="MAGNET-ССЫЛКА" class="input">
+                <input type="text" id="game-cover" placeholder="URL ОБЛОЖКИ" class="input">
+                <button id="add-game-btn" class="btn">[ ДОБАВИТЬ ТОРРЕНТ ]</button>
+            </div>
+        </div>
+
         <main>
             <div class="section-title">
                 <span class="bracket">[</span> ДОСТУПНЫЕ РЕЛИЗЫ <span class="bracket">]</span>
             </div>
             <div id="games-list" class="games-grid">
-                <!-- Сюда будут подгружаться игры -->
                 <div class="loading">ЗАГРУЗКА...</div>
             </div>
         </main>
 
-        <!-- Модальное окно с комментариями -->
         <div id="comment-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -82,7 +92,7 @@
                 <div class="comments-section">
                     <div id="comments-list" class="comments-list"></div>
                     <div class="add-comment">
-                        <textarea id="comment-text" placeholder="ТВОЙ КОММЕНТАРИЙ..." class="ascii-input" rows="2"></textarea>
+                        <textarea id="comment-text" placeholder="КОММЕНТАРИЙ..." class="input" rows="2"></textarea>
                         <button id="send-comment" class="btn-small">[ ОТПРАВИТЬ ]</button>
                     </div>
                 </div>
@@ -90,7 +100,6 @@
         </div>
     </div>
 
-    <!-- Подключение библиотек -->
     <script type="importmap">
         {
             "imports": {
@@ -102,8 +111,6 @@
         }
     </script>
     
-    <!-- Скрипты -->
-    <script type="module" src="asciiarts.js"></script>
     <script type="module" src="script.js"></script>
 </body>
 </html>
