@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, addDoc, getDocs, getDoc, doc, updateDoc, query, orderBy, where, Timestamp, increment } from "firebase/firestore";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, where, Timestamp, increment } from "firebase/firestore";
 import * as THREE from 'three';
 
 const firebaseConfig = {
@@ -9,7 +9,7 @@ const firebaseConfig = {
     projectId: "project-torrented",
     storageBucket: "project-torrented.firebasestorage.app",
     messagingSenderId: "810658353738",
-    appId: "1:810658353738:web:eecca4c92473d6f87fccb3"
+    appId: "1:810658353738:web:eecca4c92473d6f87fcc3b"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -19,7 +19,7 @@ const db = getFirestore(app);
 let currentUser = null;
 let currentGameId = null;
 let gamesData = [];
-let currentFilter = 'all';
+let currentFilter = 'new';
 
 function isAdmin(username) {
     return username && username.toLowerCase() === 'admin';
@@ -208,19 +208,23 @@ function createGameCard(game) {
         <h3>${game.title || 'БЕЗ НАЗВАНИЯ'} ${verifiedBadge}</h3>
         <div class="description">${game.description || '...'}</div>
         <div class="game-stats">
-            <span class="stat">❤️ ${game.likes || 0}</span>
+            <button class="like-btn" onclick="window.handleLike('${game.id}', event)">
+                ❤️ <span class="likes-count">${game.likes || 0}</span>
+            </button>
             <span class="stat">⬇️ ${game.downloads || 0}</span>
             <span class="stat ${game.verified ? 'verified' : 'unverified'}">
                 ${game.verified ? '✓ БЕЗОПАСНО' : '⚠ НЕ ПРОВЕРЕНО'}
             </span>
         </div>
-        <a href="${game.torrentLink || '#'}" class="download-btn" onclick="event.stopPropagation(); handleDownload('${game.id}'); return false;">[ СКАЧАТЬ ]</a>
+        <a href="${game.torrentLink || '#'}" class="download-btn" onclick="window.handleDownload('${game.id}', event); return false;">[ СКАЧАТЬ ]</a>
     `;
     
     return card;
 }
 
-window.handleDownload = async function(gameId) {
+window.handleDownload = async function(gameId, event) {
+    event.stopPropagation();
+    
     try {
         const gameRef = doc(db, "games", gameId);
         await updateDoc(gameRef, {
@@ -232,17 +236,29 @@ window.handleDownload = async function(gameId) {
             game.downloads = (game.downloads || 0) + 1;
         }
         
-        window.open(game.torrentLink, '_blank');
+        const gameCard = event.target.closest('.game-card');
+        if (gameCard) {
+            const downloadsSpan = gameCard.querySelector('.stat:nth-child(2)');
+            if (downloadsSpan) {
+                const currentDownloads = parseInt(downloadsSpan.textContent.replace('⬇️ ', '')) || 0;
+                downloadsSpan.textContent = `⬇️ ${currentDownloads + 1}`;
+            }
+        }
+        
+        const gameData = gamesData.find(g => g.id === gameId);
+        if (gameData && gameData.torrentLink) {
+            window.open(gameData.torrentLink, '_blank');
+        }
     } catch (error) {
         console.error("Ошибка обновления счетчика:", error);
-        const game = gamesData.find(g => g.id === gameId);
-        if (game && game.torrentLink) {
-            window.open(game.torrentLink, '_blank');
+        const gameData = gamesData.find(g => g.id === gameId);
+        if (gameData && gameData.torrentLink) {
+            window.open(gameData.torrentLink, '_blank');
         }
     }
 };
 
-window.likeGame = async function(gameId, event) {
+window.handleLike = async function(gameId, event) {
     event.stopPropagation();
     
     if (!currentUser) {
@@ -261,11 +277,15 @@ window.likeGame = async function(gameId, event) {
             game.likes = (game.likes || 0) + 1;
         }
         
-        const likesSpan = event.currentTarget.querySelector('.likes-count');
+        const likeBtn = event.currentTarget;
+        const likesSpan = likeBtn.querySelector('.likes-count');
         if (likesSpan) {
             const currentLikes = parseInt(likesSpan.textContent) || 0;
             likesSpan.textContent = currentLikes + 1;
         }
+        
+        likeBtn.style.background = '#9933ff';
+        likeBtn.style.color = '#0a0a0a';
         
     } catch (error) {
         console.error("Ошибка лайка:", error);
@@ -308,6 +328,7 @@ async function loadComments(gameId) {
             where("gameId", "==", gameId),
             orderBy("createdAt", "desc")
         );
+        
         const querySnapshot = await getDocs(q);
         
         commentsList.innerHTML = '';
@@ -340,6 +361,10 @@ async function loadComments(gameId) {
         
     } catch (error) {
         console.error("Ошибка загрузки комментариев:", error);
+        const commentsList = document.getElementById('comments-list');
+        if (commentsList) {
+            commentsList.innerHTML = '<div class="loading">[ ОШИБКА ЗАГРУЗКИ КОММЕНТАРИЕВ ]</div>';
+        }
     }
 }
 
@@ -610,6 +635,8 @@ function setupEventListeners() {
     const filterPopular = document.getElementById('filter-popular');
     if (filterPopular) {
         filterPopular.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            filterPopular.classList.add('active');
             currentFilter = 'popular';
             loadGames(document.getElementById('search-input').value.trim());
         });
@@ -618,6 +645,8 @@ function setupEventListeners() {
     const filterLiked = document.getElementById('filter-liked');
     if (filterLiked) {
         filterLiked.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            filterLiked.classList.add('active');
             currentFilter = 'liked';
             loadGames(document.getElementById('search-input').value.trim());
         });
@@ -626,6 +655,8 @@ function setupEventListeners() {
     const filterNew = document.getElementById('filter-new');
     if (filterNew) {
         filterNew.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            filterNew.classList.add('active');
             currentFilter = 'new';
             loadGames(document.getElementById('search-input').value.trim());
         });
@@ -650,18 +681,19 @@ onAuthStateChanged(auth, (user) => {
         if (adminPanel) {
             if (isAdmin(username)) {
                 adminPanel.style.display = 'block';
+                console.log("Админ панель показана");
             } else {
                 adminPanel.style.display = 'none';
             }
         }
         
-        console.log(`%c✅ ВОШЕЛ: ${username}`, 'color: #9933ff');
+        console.log(`✅ ВОШЕЛ: ${username}`);
     } else {
         if (unauthButtons) unauthButtons.style.display = 'flex';
         if (userInfo) userInfo.style.display = 'none';
         if (adminPanel) adminPanel.style.display = 'none';
         
-        console.log('%c❌ ВЫШЕЛ', 'color: #9933ff');
+        console.log('❌ ВЫШЕЛ');
     }
 });
 
