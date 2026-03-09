@@ -8,7 +8,7 @@
 </head>
 <body>
     <script>
-        console.log('%c╔════════════════════════════════════╗\n║     PROJECT: TORRENTED v1.0     ║\n║    Welcome, anonymous hacker    ║\n╚════════════════════════════════════╝', 'color: #b300ff; font-size: 12px;');
+        console.log('%c╔════════════════════════════════════╗\n║     PROJECT: TORRENTED v1.0     ║\n║    Welcome, anonymous hacker    ║\n╚════════════════════════════════════╝', 'color: #9933ff; font-size: 12px;');
     </script>
 
     <div id="canvas-container"></div>
@@ -35,6 +35,16 @@
                 </div>
             </div>
         </header>
+
+        <!-- Строка поиска и фильтры -->
+        <div class="search-section">
+            <input type="text" id="search-input" placeholder="ПОИСК ПО НАЗВАНИЮ..." class="input search-input">
+            <div class="filters">
+                <button id="filter-new" class="btn-small filter-btn active">[ НОВЫЕ ]</button>
+                <button id="filter-popular" class="btn-small filter-btn">[ ПОПУЛЯРНЫЕ ]</button>
+                <button id="filter-liked" class="btn-small filter-btn">[ ЛУЧШИЕ ]</button>
+            </div>
+        </div>
 
         <!-- Модальное окно входа -->
         <div id="login-modal" class="modal" style="display: none;">
@@ -63,6 +73,7 @@
             </div>
         </div>
 
+        <!-- Панель администратора -->
         <div id="admin-panel" style="display: none;">
             <div class="admin-form">
                 <h3>┌─[ ПАНЕЛЬ УПРАВЛЕНИЯ ]─[ ADMIN ]</h3>
@@ -70,10 +81,14 @@
                 <textarea id="game-desc" placeholder="ОПИСАНИЕ" class="input" rows="3"></textarea>
                 <input type="text" id="game-torrent" placeholder="MAGNET-ССЫЛКА" class="input">
                 <input type="text" id="game-cover" placeholder="URL ОБЛОЖКИ" class="input">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="game-verified"> ПРОВЕРЕНО НА ВИРУСЫ
+                </label>
                 <button id="add-game-btn" class="btn">[ ДОБАВИТЬ ТОРРЕНТ ]</button>
             </div>
         </div>
 
+        <!-- Основной контент - список игр -->
         <main>
             <div class="section-title">
                 <span class="bracket">[</span> ДОСТУПНЫЕ РЕЛИЗЫ <span class="bracket">]</span>
@@ -83,10 +98,12 @@
             </div>
         </main>
 
+        <!-- Модальное окно с комментариями -->
         <div id="comment-modal" class="modal" style="display: none;">
             <div class="modal-content">
                 <div class="modal-header">
                     <span class="modal-title"></span>
+                    <div id="modal-verified-status" class="verified-status"></div>
                     <button class="close-modal">[X]</button>
                 </div>
                 <div class="comments-section">
