@@ -19,7 +19,6 @@ const db = getFirestore(app);
 let currentUser = null;
 let currentGameId = null;
 let gamesData = [];
-let userLikes = new Set();
 
 function isAdmin(username) {
     return username && username.toLowerCase() === 'admin';
@@ -123,24 +122,6 @@ function init3D() {
     });
 }
 
-async function loadUserLikes() {
-    if (!currentUser) return;
-    
-    try {
-        const q = query(
-            collection(db, "likes"),
-            where("userId", "==", currentUser.uid)
-        );
-        const querySnapshot = await getDocs(q);
-        userLikes.clear();
-        querySnapshot.forEach((doc) => {
-            userLikes.add(doc.data().gameId);
-        });
-    } catch (error) {
-        console.error("Ошибка загрузки лайков:", error);
-    }
-}
-
 async function loadGames(searchTerm = '') {
     try {
         const gamesList = document.getElementById('games-list');
@@ -163,7 +144,6 @@ async function loadGames(searchTerm = '') {
         querySnapshot.forEach((doc) => {
             const game = { id: doc.id, ...doc.data() };
             
-            if (!game.likes) game.likes = 0;
             if (!game.downloads) game.downloads = 0;
             if (!game.verified) game.verified = false;
             
@@ -221,8 +201,6 @@ function createGameCard(game) {
     const deleteButton = isAdmin(username) ? 
         `<button class="delete-game-btn" onclick="window.deleteGame('${game.id}', event)">[X]</button>` : '';
     
-    const hasLiked = currentUser && userLikes.has(game.id);
-    
     card.innerHTML = `
         <div class="cover">${coverHtml}</div>
         <div class="card-header">
@@ -231,9 +209,6 @@ function createGameCard(game) {
         </div>
         <div class="description">${shortDesc}</div>
         <div class="game-stats">
-            <button class="like-btn ${hasLiked ? 'liked' : ''}" onclick="window.handleLike('${game.id}', event)">
-                ❤️ <span class="likes-count">${game.likes || 0}</span>
-            </button>
             <span class="stat">⬇️ ${game.downloads || 0}</span>
             <span class="stat ${game.verified ? 'verified' : 'unverified'}">
                 ${game.verified ? '✓ БЕЗОПАСНО' : '⚠ НЕ ПРОВЕРЕНО'}
@@ -258,15 +233,9 @@ window.deleteGame = async function(gameId, event) {
             
             const commentsQuery = query(collection(db, "comments"), where("gameId", "==", gameId));
             const commentsSnapshot = await getDocs(commentsQuery);
-            commentsSnapshot.forEach(async (commentDoc) => {
-                await deleteDoc(doc(db, "comments", commentDoc.id));
-            });
             
-            const likesQuery = query(collection(db, "likes"), where("gameId", "==", gameId));
-            const likesSnapshot = await getDocs(likesQuery);
-            likesSnapshot.forEach(async (likeDoc) => {
-                await deleteDoc(doc(db, "likes", likeDoc.id));
-            });
+            const deleteComments = commentsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+            await Promise.all(deleteComments);
             
             gamesData = gamesData.filter(g => g.id !== gameId);
             await loadGames(document.getElementById('search-input')?.value.trim() || '');
@@ -275,64 +244,6 @@ window.deleteGame = async function(gameId, event) {
             console.error("Ошибка удаления игры:", error);
             alert('Ошибка при удалении');
         }
-    }
-};
-
-window.handleLike = async function(gameId, event) {
-    event.stopPropagation();
-    
-    if (!currentUser) {
-        alert('Войди, чтобы ставить лайки!');
-        return;
-    }
-    
-    if (userLikes.has(gameId)) {
-        alert('Ты уже лайкнул эту игру!');
-        return;
-    }
-    
-    try {
-        await addDoc(collection(db, "likes"), {
-            gameId: gameId,
-            userId: currentUser.uid,
-            userName: currentUser.email.split('@')[0],
-            createdAt: Timestamp.now()
-        });
-        
-        const gameRef = doc(db, "games", gameId);
-        await updateDoc(gameRef, {
-            likes: increment(1)
-        });
-        
-        const game = gamesData.find(g => g.id === gameId);
-        if (game) {
-            game.likes = (game.likes || 0) + 1;
-        }
-        
-        userLikes.add(gameId);
-        
-        const likeBtn = event.currentTarget;
-        if (likeBtn) {
-            const likesSpan = likeBtn.querySelector('.likes-count');
-            if (likesSpan) {
-                const currentLikes = parseInt(likesSpan.textContent) || 0;
-                likesSpan.textContent = currentLikes + 1;
-            }
-            likeBtn.classList.add('liked');
-        }
-        
-        const gameModal = document.getElementById('game-modal');
-        if (gameModal && gameModal.style.display === 'flex' && currentGameId === gameId) {
-            const modalLikes = document.getElementById('game-likes');
-            if (modalLikes) {
-                const currentLikes = parseInt(modalLikes.textContent.replace('❤️ ', '')) || 0;
-                modalLikes.innerHTML = `❤️ ${currentLikes + 1}`;
-            }
-        }
-        
-    } catch (error) {
-        console.error("Ошибка лайка:", error);
-        alert('Ошибка при установке лайка');
     }
 };
 
@@ -346,13 +257,12 @@ async function openGameModal(gameId) {
     const titleEl = document.getElementById('game-modal-title');
     const descEl = document.getElementById('game-full-desc');
     const downloadsEl = document.getElementById('game-downloads');
-    const likesEl = document.getElementById('game-likes');
     const verifiedEl = document.getElementById('game-modal-verified');
     const mainImageEl = document.getElementById('game-main-image');
     const thumbnailsEl = document.getElementById('game-thumbnails');
     const downloadLinkEl = document.getElementById('game-download-link');
     
-    if (!modal || !titleEl || !descEl || !downloadsEl || !likesEl || !verifiedEl || !mainImageEl || !thumbnailsEl || !downloadLinkEl) {
+    if (!modal || !titleEl || !descEl || !downloadsEl || !verifiedEl || !mainImageEl || !thumbnailsEl || !downloadLinkEl) {
         console.error("Не найдены элементы модального окна");
         return;
     }
@@ -360,7 +270,6 @@ async function openGameModal(gameId) {
     titleEl.textContent = game.title || 'БЕЗ НАЗВАНИЯ';
     descEl.textContent = game.description || 'Нет описания';
     downloadsEl.innerHTML = `⬇️ ${game.downloads || 0}`;
-    likesEl.innerHTML = `❤️ ${game.likes || 0}`;
     downloadLinkEl.href = game.torrentLink || '#';
     
     verifiedEl.className = game.verified ? 'verified' : 'unverified';
@@ -522,7 +431,6 @@ async function addGame() {
             image2: image2 ? image2.value.trim() : '',
             image3: image3 ? image3.value.trim() : '',
             verified: verified ? verified.checked : false,
-            likes: 0,
             downloads: 0,
             createdAt: Timestamp.now()
         });
@@ -791,13 +699,11 @@ onAuthStateChanged(auth, async (user) => {
             }
         }
         
-        await loadUserLikes();
         console.log(`✅ ВОШЕЛ: ${username}`);
     } else {
         if (unauthButtons) unauthButtons.style.display = 'flex';
         if (userInfo) userInfo.style.display = 'none';
         if (adminPanel) adminPanel.style.display = 'none';
-        userLikes.clear();
         console.log('❌ ВЫШЕЛ');
     }
     
